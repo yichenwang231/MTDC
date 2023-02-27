@@ -102,7 +102,6 @@ if __name__ == "__main__":
     model = network.Network_VTCC(vtcc, args.feature_dim, class_num)
     model = model.to('cuda')
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-    pseudo_labels = -torch.ones(dataset.__len__(), dtype=torch.long)
     loss_device = torch.device("cuda")
     
     if args.reload:
