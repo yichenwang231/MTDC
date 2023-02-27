@@ -6,15 +6,15 @@ dataset_dir: "./datasets"
 # train options
 batch_size: 256
 image_size: 224
-start_epoch: 760
-epochs: 1150
+start_epoch: 0
+epochs: 1200
 dataset: "ImageNet-10" # CIFAR-10 / ImageNet-10 
 
 # model options
 resnet: "ResNet34" # ResNet18 / ResNet34 / ResNet50
 feature_dim: 128
 model_path: "save/ImageNet-10"
-reload: True
+reload: False
 
 # loss options
 learning_rate: 0.0003
