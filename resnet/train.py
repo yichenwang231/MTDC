@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torchvision
 import argparse
+import random
 from modules import transform, resnet, network, contrastive_loss, transform_s_w
 from utils import yaml_config_hook, save_model
 from torch.utils import data
@@ -59,8 +60,6 @@ if __name__ == "__main__":
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    import random
-    torch.multiprocessing.set_sharing_strategy('file_system')
     torch.backends.cudnn.deterministic=True; np.random.seed(args.seed); random.seed(args.seed)
     torch.manual_seed(args.seed); torch.cuda.manual_seed(args.seed); torch.cuda.manual_seed_all(args.seed)
 
