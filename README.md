@@ -13,7 +13,7 @@ This is the code for the paper "Mutual-Taught Contrastive Clustering"
 - numpy==1.22.4
 - munkres==1.1.4
 # Usage
-MTCC is composed of the training and boosting stages. Configurations such as model, dataset, temperature, etc. could be set with argparse. Clustering performance is evaluated during the training or boosting.
+Configurations such as model, dataset, temperature, etc. could be set with argparse. Clustering performance is evaluated during the training.
 # Data Preparation
 CIFAR-10 could be automatically downloaded by Pytorch.Other datasets can be downloaded from the url provided by their corresponding papers or official websites.
 # Dataset Structure:
@@ -29,13 +29,8 @@ After setting the configuration, to start training, simply run
 ```
 python train.py 
 ```
-# Boosting
-Once the training is completed, there will be a saved model in the "model_path" specified in the configuration file. To boost the trained model, run
-```
-python boost.py 
-```
 # Test
-To test the training or boosting model, run
+To test the trained model, run
 ```
 python cluster.py 
 ```
