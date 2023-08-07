@@ -35,4 +35,4 @@ To test the trained model, run
 python cluster.py 
 ```
 # Acknowledge
-MTCC is developed based on the architecture of "Contrastive Clustering" (AAAI 2021, https://github.com/Yunfan-Li/Contrastive-Clustering) and "Vision Transformer for Contrastive Clustering" (CVPR 2022, https://github.com/JackKoLing/VTCC) .We sincerely thank the authors for the excellent works!
+MTCC is developed based on the architecture of "Contrastive Clustering" (AAAI 2021, https://github.com/Yunfan-Li/Contrastive-Clustering) and "Vision Transformer for Contrastive Clustering" (preprint 2022, https://github.com/JackKoLing/VTCC) .We sincerely thank the authors for the excellent works!
