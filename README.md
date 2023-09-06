@@ -1,4 +1,4 @@
-# Mutual-Taught Contrastive Clustering (MTCC)
+# Mutual-Taught Deep Clustering (MTDC)
 This is the code for the paper "Mutual-Taught Deep Clustering"
 
 # Environment
