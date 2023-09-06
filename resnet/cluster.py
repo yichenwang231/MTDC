@@ -42,14 +42,26 @@ if __name__ == "__main__":
             root=args.dataset_dir,
             train=True,
             download=True,
-            transform=transform_s_w.Augmentation().val_aug,
+            transform=transform.Transforms(size=args.image_size).test_transform,
         )
         test_dataset = torchvision.datasets.CIFAR10(
             root=args.dataset_dir,
             train=False,
             download=True,
-            transform=transform_s_w.Augmentation().val_aug,
+            transform=transform.Transforms(size=args.image_size).test_transform,
         )
+        # train_dataset = torchvision.datasets.CIFAR10(
+        #     root=args.dataset_dir,
+        #     train=True,
+        #     download=True,
+        #     transform=transform_s_w.Augmentation().val_aug,
+        # )
+        # test_dataset = torchvision.datasets.CIFAR10(
+        #     root=args.dataset_dir,
+        #     train=False,
+        #     download=True,
+        #     transform=transform_s_w.Augmentation().val_aug,
+        # )
         dataset = data.ConcatDataset([train_dataset, test_dataset])
         class_num = 10
     elif args.dataset == "ImageNet-10":
@@ -76,5 +88,6 @@ if __name__ == "__main__":
 
     print("### Creating features from model ###")
     X, Y = inference(data_loader, model, device)
+   
     nmi, ari, f, acc = evaluation.evaluate(Y, X)
     print('NMI = {:.4f} ARI = {:.4f} F = {:.4f} ACC = {:.4f}'.format(nmi, ari, f, acc))
