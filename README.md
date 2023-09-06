@@ -13,7 +13,7 @@ This is the code for the paper "Mutual-Taught Deep Clustering"
 - numpy==1.22.4
 - munkres==1.1.4
 # Usage
-Configurations such as model, dataset, temperature, etc. could be set with argparse. Clustering performance is evaluated during the training.
+Configurations such as model, dataset, temperature, etc. could be set with argparse. 
 # Data Preparation
 CIFAR-10 could be automatically downloaded by Pytorch.Other datasets can be downloaded from the url provided by their corresponding papers or official websites.
 # Dataset Structure:
