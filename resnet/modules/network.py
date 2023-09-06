@@ -24,7 +24,7 @@ class Network(nn.Module):
     def forward(self, x_i, x_j):
         h_i = self.resnet(x_i)
         h_j = self.resnet(x_j)
-
+        
         z_i = normalize(self.instance_projector(h_i), dim=1)
         z_j = normalize(self.instance_projector(h_j), dim=1)
 
@@ -33,6 +33,12 @@ class Network(nn.Module):
 
         return z_i, z_j, c_i, c_j
 
+    def forward_logits(self, x):
+        h = self.resnet(x)
+        c = self.cluster_projector(h)
+        
+        return c
+    
     def forward_cluster(self, x):
         h = self.resnet(x)
         c = self.cluster_projector(h)
