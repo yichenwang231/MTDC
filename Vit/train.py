@@ -11,42 +11,33 @@ import modules as criteria
 
 def train():
     loss_epoch = 0
-    optimizer.zero_grad()
     for step, ((x_i, x_j, x), _) in enumerate(data_loader):
         optimizer.zero_grad()
         x_i = x_i.to('cuda')
         x_j = x_j.to('cuda')
         x = x.to('cuda')
-        index = torch.arange(step*128,(step+1)*128)
-        index = index.to('cuda')
+
         model.eval()
         with torch.no_grad():
-            _, _, _, c = model(x, x)
-            pseudo_labels_cur, index_cur = criterion_ins.generate_pseudo_labels(
-                c, pseudo_labels[index].to(c.device), index.to(c.device)
-            )
-            pseudo_labels[index_cur] = pseudo_labels_cur
-            pseudo_index = pseudo_labels != -1
-        if epoch == args.start_epoch:
-            continue
-
-        model.train(True)
+            c = model.forward_logits(x)
         
+        model.train(True)
         z_i, z_j, c_i, c_j = model(x_i, x_j)
         loss_scl = criterion_scl(torch.cat((z_i,z_j),dim=0), c)
-        loss_clu = criterion_clu(c_j, pseudo_labels[index]).to('cuda')
+        loss_instance = criterion_instance(z_i, z_j)
+        loss_cluster = criterion_cluster(c_i, c_j)
         f = torch.cat((z_i,z_j),dim=0)
         h = torch.cat((c_i,c_j),dim=0)
         loss_hcr = criterion_hcr(h,f).to('cuda')
 
        
-        loss = loss_clu + 10*loss_hcr + 0.1*loss_scl
+        loss = loss_instance + loss_cluster + 10*loss_hcr + 0.1*loss_scl
         loss.backward()
         optimizer.step()
         
         if step % 50 == 0:
             print(
-                f"Step [{step}/{len(data_loader)}]\t loss_cluster: {loss_clu.item()} \t loss_hcr: {10*loss_hcr.item()}\t loss_scl: {0.1*loss_scl.item()}")
+                f"Step [{step}/{len(data_loader)}]\t loss_instance: {loss_instance.item()} \t loss_cluster: {loss_cluster.item()} \t loss_hcr: {10*loss_hcr.item()}\t loss_scl: {0.1*loss_scl.item()}")
         loss_epoch += loss.item()
     return loss_epoch
 
@@ -65,7 +56,7 @@ if __name__ == "__main__":
     # prepare data
     if args.dataset == "SIRI-WHU":
         dataset = torchvision.datasets.ImageFolder(
-            root='./datasets/SIRI-WHU',
+            root='./datasets/SIRI-WHU/12class_tif',
             transform=transform.Augmentation(size=args.image_size),
         )
         class_num = 12
@@ -83,7 +74,7 @@ if __name__ == "__main__":
         class_num = 47
     elif args.dataset == "UC-Merced":
         dataset = torchvision.datasets.ImageFolder(
-            root='./datasets/UC-Merced/Images',
+            root='./datasets/UC-Merced/uc/Images',
             transform=transform.Augmentation(size=args.image_size),
         )
         class_num = 21
@@ -112,14 +103,13 @@ if __name__ == "__main__":
         optimizer.load_state_dict(checkpoint['optimizer'])
         args.start_epoch = checkpoint['epoch'] + 1
     
-    criterion_ins = contrastive_loss.InstanceLossBoost(tau=args.instance_temperature, alpha=0.99, gamma=0.5, cluster_num=class_num).to(loss_device)
-    criterion_clu = contrastive_loss.ClusterLossBoost(cluster_num=class_num).to(loss_device)
     criterion_hcr = contrastive_loss.HCR().to(loss_device)
     criterion_scl = contrastive_loss.SupConLoss().to(loss_device)
-    pseudo_labels = -torch.ones(dataset.__len__(), dtype=torch.long)
+    criterion_instance = contrastive_loss.InstanceLoss(args.batch_size, args.instance_temperature, loss_device).to(
+        loss_device)
+    criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
     for epoch in range(args.start_epoch, args.epochs):
         lr = optimizer.param_groups[0]["lr"]
-        
         loss_epoch = train()
         if epoch % 10 == 0:
             save_model(args, model, optimizer, epoch)
