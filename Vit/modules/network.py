@@ -32,7 +32,6 @@ class Network_VTCC(nn.Module):
     def forward(self, x_i, x_j):
         h_i = self.vtcc(x_i)
         h_j = self.vtcc(x_j)
-
         z_i = normalize(self.instance_projector(h_i), dim=1)
         z_j = normalize(self.instance_projector(h_j), dim=1)
 
@@ -40,6 +39,12 @@ class Network_VTCC(nn.Module):
         c_j = self.cluster_projector(h_j)
 
         return z_i, z_j, c_i, c_j
+    
+    def forward_logits(self, x):
+        h = self.vtcc(x)
+        c = self.cluster_projector(h)
+        
+        return c
 
     def forward_cluster(self, x):
         h = self.vtcc(x)
