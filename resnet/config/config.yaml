@@ -7,7 +7,7 @@ dataset_dir: "./datasets"
 batch_size: 256
 image_size: 224
 start_epoch: 0
-epochs: 1200
+epochs: 1000
 dataset: "ImageNet-10" # CIFAR-10 / ImageNet-10 
 
 # model options
