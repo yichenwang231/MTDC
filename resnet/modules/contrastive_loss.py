@@ -91,7 +91,7 @@ class ClusterLoss(nn.Module):
         loss /= N
 
         return loss + ne_loss
-
+    
 class HCR(nn.Module):
     def __init__(self, weight=1.0):
         super(HCR, self).__init__()
@@ -116,7 +116,7 @@ class HCR(nn.Module):
     def forward(self, logits, projections):
         loss_feat = self.hcr_loss(F.normalize(logits, dim=1), F.normalize(projections, dim=1).detach()) * self.weight
         return loss_feat
-    
+
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
@@ -140,20 +140,12 @@ class SupConLoss(nn.Module):
         Returns:
             A loss scalar.
         """
+        top_values, top_indices = torch.topk(labels, k=3)
         
-        prediction1 = labels.argmax(dim=1)
-        temp = (labels!= labels.max(dim=1, keepdim=True)[0]).to(dtype=torch.float32)
-        labels = torch.mul(temp, labels)
-        prediction2 = labels.argmax(dim=1)
-        temp = (labels != labels.max(dim=1, keepdim=True)[0]).to(dtype=torch.float32)
-        labels = torch.mul(temp, labels)
-        prediction3 = labels.argmax(dim=1)
-        temp = (labels!= labels.max(dim=1, keepdim=True)[0]).to(dtype=torch.float32)
-        labels = torch.mul(temp, labels)
-        prediction4 = labels.argmax(dim=1)
-        temp = (labels != labels.max(dim=1, keepdim=True)[0]).to(dtype=torch.float32)
-        labels = torch.mul(temp, labels)
-        prediction5 = labels.argmax(dim=1)
+        prediction1 = top_indices[:, 0]
+        prediction2 = top_indices[:, 1]
+        prediction3 = top_indices[:, 2]
+        
         bsz = prediction1.shape[0]
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
@@ -176,21 +168,17 @@ class SupConLoss(nn.Module):
             prediction1 = prediction1.contiguous().view(-1, 1)
             prediction2 = prediction2.contiguous().view(-1, 1)
             prediction3 = prediction3.contiguous().view(-1, 1)
-            prediction4 = prediction4.contiguous().view(-1, 1)
-            prediction5 = prediction5.contiguous().view(-1, 1)
+            
             if labels.shape[0] != batch_size:
                 raise ValueError('Num of labels does not match num of features')
             mask = torch.eq(prediction1, prediction1.T).float().to(device)
            
             mask2 = torch.eq(prediction2, prediction2.T).float().to(device)
             mask3 = torch.eq(prediction3, prediction3.T).float().to(device)
-            mask4 = torch.eq(prediction4, prediction4.T).float().to(device)
-            mask5 = torch.eq(prediction5, prediction5.T).float().to(device)
+           
         else:
             mask = mask.float().to(device)
-        temp = (mask==mask2)&(mask==mask3)&(mask==mask4)&(mask==mask5)&(mask2==mask3)&(mask2==mask4)&(mask2==mask5)&(mask3==mask4)&(mask3==mask5)&(mask4==mask5)
-        # temp = (mask==mask2)&(mask==mask3)&(mask2==mask3)
-        
+        temp = (mask==mask2)&(mask==mask3)&(mask2==mask3)
         temp = temp.float()
         mask = torch.where(mask==0,mask,temp)
         contrast_count = features.shape[1]
@@ -235,87 +223,3 @@ class SupConLoss(nn.Module):
 
         return loss
     
-
-
-    
-class InstanceLossBoost(nn.Module):
-    """
-    Contrastive loss with distributed data parallel support
-    """
-
-    LARGE_NUMBER = 3e4
-
-    def __init__(
-        self,
-        tau=0.5,
-        alpha=0.99,
-        gamma=0.5,
-        cluster_num=10,
-    ):
-        super().__init__()
-        self.tau = tau
-        self.alpha = alpha
-        self.gamma = gamma
-        self.cluster_num = cluster_num
-
-    @torch.no_grad()
-    def generate_pseudo_labels(self, c, pseudo_label_cur, index):
-        batch_size = c.shape[0]
-        device = c.device
-        pseudo_label_nxt = -torch.ones(batch_size, dtype=torch.long).to(device)
-        tmp = torch.arange(0, batch_size).to(device)
-        
-        
-        
-        prediction = c.argmax(dim=1)
-        confidence = c.max(dim=1).values
-        unconfident_pred_index = confidence < self.alpha
-        pseudo_per_class = np.ceil(batch_size / self.cluster_num * self.gamma).astype(
-            int
-        )
-        for i in range(self.cluster_num):
-            class_idx = prediction == i
-            if class_idx.sum() == 0:
-                continue
-            confidence_class = confidence[class_idx]
-            num = min(confidence_class.shape[0], pseudo_per_class)
-            confident_idx = torch.argsort(-confidence_class)
-            for j in range(num):
-                idx = tmp[class_idx][confident_idx[j]]
-                pseudo_label_nxt[idx] = i
-
-        todo_index = pseudo_label_cur == -1
-        pseudo_label_cur[todo_index] = pseudo_label_nxt[todo_index]
-        pseudo_label_nxt = pseudo_label_cur
-        pseudo_label_nxt[unconfident_pred_index] = -1
-        
-        
-        return pseudo_label_nxt.cpu(), index
-
-
-class ClusterLossBoost(nn.Module):
-    """
-    Contrastive loss with distributed data parallel support
-    """
-
-    LARGE_NUMBER = 1e4
-
-    def __init__(self, cluster_num=10):
-        super().__init__()
-        self.cluster_num = cluster_num
-
-    def forward(self, c, pseudo_label):
-        pseudo_index = pseudo_label != -1
-        pesudo_label = pseudo_label[pseudo_index]
-        idx, counts = torch.unique(pseudo_label, return_counts=True)
-        freq = pseudo_label.shape[0] / counts.float().to(c.device)
-        weight = torch.ones(self.cluster_num).to(c.device)
-        weight[idx] = freq
-        if pseudo_index.sum() > 0:
-            criterion = nn.CrossEntropyLoss(weight=weight).to(c.device)
-            loss_ce = criterion(
-                c[pseudo_index], pseudo_label[pseudo_index].to(c.device)
-            )
-        else:
-            loss_ce = torch.tensor(0.0, requires_grad=True).to(c.device)
-        return loss_ce
