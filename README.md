@@ -1,5 +1,5 @@
 # Mutual-Taught Contrastive Clustering (MTCC)
-This is the code for the paper "Mutual-Taught Contrastive Clustering"
+This is the code for the paper "Mutual-Taught Deep Clustering"
 
 # Environment
 - python==3.8
