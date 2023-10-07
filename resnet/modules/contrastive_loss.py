@@ -92,9 +92,9 @@ class ClusterLoss(nn.Module):
 
         return loss + ne_loss
     
-class HCR(nn.Module):
+class BCELoss(nn.Module):
     def __init__(self, weight=1.0):
-        super(HCR, self).__init__()
+        super(BCELoss, self).__init__()
         self.eps = 1e-12
         self.weight = weight
 
@@ -117,12 +117,12 @@ class HCR(nn.Module):
         loss_feat = self.hcr_loss(F.normalize(logits, dim=1), F.normalize(projections, dim=1).detach()) * self.weight
         return loss_feat
 
-class SupConLoss(nn.Module):
+class PCLLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
     def __init__(self, temperature=0.5, contrast_mode='all',
                  base_temperature=0.07):
-        super(SupConLoss, self).__init__()
+        super(PCLLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature
