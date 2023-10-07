@@ -23,15 +23,15 @@ def train():
         
         model.train(True)
         z_i, z_j, c_i, c_j = model(x_i, x_j)
-        loss_scl = criterion_scl(torch.cat((z_i,z_j),dim=0), c)
+        loss_pcl = criterion_scl(torch.cat((z_i,z_j),dim=0), c)
         loss_instance = criterion_instance(z_i, z_j)
         loss_cluster = criterion_cluster(c_i, c_j)
         f = torch.cat((z_i,z_j),dim=0)
         h = torch.cat((c_i,c_j),dim=0)
-        loss_hcr = criterion_hcr(h,f).to('cuda')
+        loss_bce = criterion_hcr(h,f).to('cuda')
 
        
-        loss = loss_instance + loss_cluster + 10*loss_hcr + 0.1*loss_scl
+        loss = loss_instance + loss_cluster + 10*loss_bce + 0.1*loss_pcl
         loss.backward()
         optimizer.step()
         
@@ -103,8 +103,8 @@ if __name__ == "__main__":
         optimizer.load_state_dict(checkpoint['optimizer'])
         args.start_epoch = checkpoint['epoch'] + 1
     
-    criterion_hcr = contrastive_loss.HCR().to(loss_device)
-    criterion_scl = contrastive_loss.SupConLoss().to(loss_device)
+    criterion_bce = contrastive_loss.BCELoss().to(loss_device)
+    criterion_pcl = contrastive_loss.PCLLoss().to(loss_device)
     criterion_instance = contrastive_loss.InstanceLoss(args.batch_size, args.instance_temperature, loss_device).to(
         loss_device)
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
