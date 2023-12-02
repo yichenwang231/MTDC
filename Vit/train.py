@@ -23,12 +23,12 @@ def train():
         
         model.train(True)
         z_i, z_j, c_i, c_j = model(x_i, x_j)
-        loss_pcl = criterion_scl(torch.cat((z_i,z_j),dim=0), c)
+        loss_pcl = criterion_pcl(torch.cat((z_i,z_j),dim=0), c)
         loss_instance = criterion_instance(z_i, z_j)
         loss_cluster = criterion_cluster(c_i, c_j)
         f = torch.cat((z_i,z_j),dim=0)
         h = torch.cat((c_i,c_j),dim=0)
-        loss_bce = criterion_hcr(h,f).to('cuda')
+        loss_bce = criterion_bce(h,f).to('cuda')
 
        
         loss = loss_instance + loss_cluster + 10*loss_bce + 0.1*loss_pcl
